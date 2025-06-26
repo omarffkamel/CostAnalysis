@@ -1,8 +1,5 @@
-# Install PyTorch before mmcv-full
 torch==2.6.0
 torchvision==0.21.0
-
-# Use correct index for mmcv-full
 -f https://download.openmmlab.com/mmcv/dist/cpu/torch2.6/index.html
 mmcv-full==1.7.2
 
