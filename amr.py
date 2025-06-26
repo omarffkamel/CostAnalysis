@@ -21,15 +21,19 @@ if uploaded_file:
     st.write("Data Preview:")
     st.dataframe(df.head())
 
-    if df.shape[1] < 27:
-        st.warning("The file must have at least 27 columns.")
+    if df.shape[1] < 28:
+        st.warning("The file must have at least 28 columns.")
     else:
         rename_start = time.time()
-        df.rename(columns={df.columns[25]: "Sub Products", df.columns[26]: "Products"}, inplace=True)
+        df.rename(columns={
+            df.columns[25]: "Sub Products",
+            df.columns[26]: "Products",
+            df.columns[27]: "Resource I.D"
+        }, inplace=True)
         st.write(f"Columns renamed in {time.time() - rename_start:.2f} seconds.")
 
         st.write("Choose a function:")
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
 
         with col1:
             if st.button("Product Proportions"):
@@ -61,6 +65,34 @@ if uploaded_file:
                 select_start = time.time()
                 selected = st.selectbox("Select a Product", df["Products"].dropna().unique())
                 filtered = df[df["Products"] == selected]
+
+                counts = filtered["Sub Products"].value_counts()
+                percentages = (counts / counts.sum()) * 100
+                chart_df = pd.DataFrame({
+                    "Sub Products": counts.index,
+                    "Percentage": percentages.values
+                })
+                st.write(f"Filtered and prepared chart data in {time.time() - select_start:.2f} seconds.")
+
+                chart_start = time.time()
+                pie_chart = alt.Chart(chart_df).mark_arc().encode(
+                    theta="Percentage:Q",
+                    color="Sub Products:N",
+                    tooltip=["Sub Products", "Percentage"]
+                )
+                st.write(f"Chart generated in {time.time() - chart_start:.2f} seconds.")
+                st.altair_chart(pie_chart, use_container_width=True)
+
+        with col3:
+            show_rid_filter = st.session_state.get("show_rid_filter", False)
+            if st.button("Resource I.D"):
+                st.session_state["show_rid_filter"] = True
+                show_rid_filter = True
+
+            if show_rid_filter:
+                select_start = time.time()
+                selected = st.selectbox("Select a Resource I.D", df["Resource I.D"].dropna().unique(), key="rid_select")
+                filtered = df[df["Resource I.D"] == selected]
 
                 counts = filtered["Sub Products"].value_counts()
                 percentages = (counts / counts.sum()) * 100
