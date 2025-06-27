@@ -3,6 +3,9 @@ import pandas as pd
 import altair as alt
 import time
 
+# ✅ Force Altair to use SVG rendering for better fullscreen compatibility
+alt.renderers.set_embed_options(renderer="svg")
+
 st.title("Product Analysis App")
 
 start_time = time.time()
