@@ -31,6 +31,11 @@ if uploaded_file:
             df.columns[27]: "Product ID"
         }, inplace=True)
 
+        # Initialize session state flags
+        for key in ["show_filter", "show_custom", "show_cost"]:
+            if key not in st.session_state:
+                st.session_state[key] = False
+
         st.write("Choose a function:")
         col1, col2, col3, col4 = st.columns(4)
 
@@ -50,12 +55,10 @@ if uploaded_file:
                 st.altair_chart(pie_chart, use_container_width=True)
 
         with col2:
-            show_filter = st.session_state.get("show_filter", False)
             if st.button("Filter by Subproduct"):
                 st.session_state["show_filter"] = True
-                show_filter = True
 
-            if show_filter:
+            if st.session_state["show_filter"]:
                 selected = st.selectbox("Select a Product", df["Products"].dropna().unique())
                 filtered = df[df["Products"] == selected]
 
@@ -73,12 +76,10 @@ if uploaded_file:
                 st.altair_chart(pie_chart, use_container_width=True)
 
         with col3:
-            show_custom = st.session_state.get("show_custom", False)
             if st.button("Filter by Product I.D"):
                 st.session_state["show_custom"] = True
-                show_custom = True
 
-            if show_custom:
+            if st.session_state["show_custom"]:
                 selected = st.selectbox("Select a Product (Product ID)", df["Products"].dropna().unique(), key="custom_select")
                 filtered = df[df["Products"] == selected]
 
@@ -96,24 +97,28 @@ if uploaded_file:
                 st.altair_chart(pie_chart, use_container_width=True)
 
         with col4:
-            show_cost = st.session_state.get("show_cost", False)
             if st.button("Cost Breakdown by Subproduct"):
                 st.session_state["show_cost"] = True
-                show_cost = True
 
-            if show_cost:
+            if st.session_state["show_cost"]:
                 selected = st.selectbox("Select a Product (for Cost)", df["Products"].dropna().unique(), key="cost_select")
                 filtered = df[df["Products"] == selected]
 
+                # Ensure 'Cost' is numeric
+                filtered["Cost"] = pd.to_numeric(filtered["Cost"], errors='coerce')
+                filtered = filtered.dropna(subset=["Cost"])
+
                 cost_df = filtered.groupby("Sub Products")["Cost"].sum().reset_index()
                 total_cost = cost_df["Cost"].sum()
-                cost_df["Percentage"] = (cost_df["Cost"] / total_cost) * 100
-
-                pie_chart = alt.Chart(cost_df).mark_arc().encode(
-                    theta="Percentage:Q",
-                    color="Sub Products:N",
-                    tooltip=["Sub Products", "Cost", "Percentage"]
-                )
-                st.altair_chart(pie_chart, use_container_width=True)
+                if total_cost == 0 or cost_df.empty:
+                    st.warning("No valid cost data to display for this product.")
+                else:
+                    cost_df["Percentage"] = (cost_df["Cost"] / total_cost) * 100
+                    pie_chart = alt.Chart(cost_df).mark_arc().encode(
+                        theta="Percentage:Q",
+                        color="Sub Products:N",
+                        tooltip=["Sub Products", "Cost", "Percentage"]
+                    )
+                    st.altair_chart(pie_chart, use_container_width=True)
 
 st.write(f"Total runtime so far: {time.time() - start_time:.2f} seconds.")
